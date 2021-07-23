@@ -365,7 +365,7 @@ public abstract class Graph extends View {
         }
 
 
-        Float subtitleX = (cxEnd-mSubtitlePaint.measureText(mSubtitle)-10);
+        Float subtitleX = (cxEnd-mSubtitlePaint.measureText(mSubtitle)-getDpValue(5));
         canvas.drawText(
                 mSubtitle,
                 subtitleX,
@@ -377,6 +377,7 @@ public abstract class Graph extends View {
         if (titleRightEdge>subtitleX) {
             titleX = subtitleX-titleMeasuredWidth-getDpValue(4F);
         }
+        float legendSubtitleX = (cxEnd-mSubtitlePaint.measureText(mLegendSubtitle)-getDpValue(11));
         canvas.drawText(
                 mTitle,
                 titleX,
@@ -384,18 +385,18 @@ public abstract class Graph extends View {
                 mTitlePaint);
         canvas.drawText(
                 mLegendSubtitle,
-                subtitleX,
+                legendSubtitleX,
                 cyEnd-getDpValue(30F),
                 mSubtitlePaint);
         canvas.drawText(
                 mLegendSubsubtitle,
-                subtitleX,
+                legendSubtitleX,
                 cyEnd-getDpValue(15F),
                 mSubtitlePaint);
         canvas.drawText(
                 mDataCopyright,
                 cxStart+getDpValue(25F),
-                cyEnd-getDpValue(18F),
+                cyEnd-getDpValue(13F),
                 mSubtitlePaint);
     }
 
