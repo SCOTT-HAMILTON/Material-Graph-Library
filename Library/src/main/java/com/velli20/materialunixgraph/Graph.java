@@ -53,7 +53,6 @@ public abstract class Graph extends View {
 
     private static final long ONE_DAY_IN_MILLIS = 1000 * 60 * 60 * 24;
     private static final long ONE_MINUTE_IN_MILLIS = 1000 * 60;
-
     private float mScale;
 
     private Paint mGraphFramePaint = new Paint();
@@ -193,7 +192,7 @@ public abstract class Graph extends View {
         return mScale * value;
     }
 
-    public float getVerticalAxisLabelPadding() { return 40F; }
+    public float getVerticalAxisLabelPadding() { return getDpValue(20F); }
 
     public float getHorizontalAxisLabelPadding() { return mHorizontalAxisLabelPaint.getTextSize() * 1.5f; }
 
@@ -351,7 +350,7 @@ public abstract class Graph extends View {
 
         /* Draw the vertical axis labels */
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            canvas.drawRoundRect(0, 0, mWidth, mHeight, 10, 10, mBackgroundPaint);
+            canvas.drawRoundRect(0, 0, mWidth, mHeight, getDpValue(5F), getDpValue(5F), mBackgroundPaint);
         }
         if(mDrawVerticalAxisLabels || mDrawVerticalAxisLabelLines) {
             drawVerticalAxisLabels(canvas, cyStart, cyEnd, cxStart, cxEnd);
@@ -370,33 +369,33 @@ public abstract class Graph extends View {
         canvas.drawText(
                 mSubtitle,
                 subtitleX,
-                57,
+                getDpValue(29F),
                 mSubtitlePaint);
         float titleMeasuredWidth = mTitlePaint.measureText(mTitle);
         Float titleX = (cxEnd-cxStart)/2-titleMeasuredWidth/2;
         Float titleRightEdge = titleX+titleMeasuredWidth;
         if (titleRightEdge>subtitleX) {
-            titleX = subtitleX-titleMeasuredWidth-7;
+            titleX = subtitleX-titleMeasuredWidth-getDpValue(4F);
         }
         canvas.drawText(
                 mTitle,
                 titleX,
-                57,
+                getDpValue(29F),
                 mTitlePaint);
         canvas.drawText(
                 mLegendSubtitle,
                 subtitleX,
-                cyEnd-60,
+                cyEnd-getDpValue(30F),
                 mSubtitlePaint);
         canvas.drawText(
                 mLegendSubsubtitle,
                 subtitleX,
-                cyEnd-30,
+                cyEnd-getDpValue(15F),
                 mSubtitlePaint);
         canvas.drawText(
                 mDataCopyright,
-                cxStart+50,
-                cyEnd-35,
+                cxStart+getDpValue(25F),
+                cyEnd-getDpValue(18F),
                 mSubtitlePaint);
     }
 
@@ -407,7 +406,7 @@ public abstract class Graph extends View {
         float lineCy = 0;
         float lineCyStart = (cyStart);
         float labelCyStart = cyStart + (labelTextSize /2) - (graphFrameStrokeWidth / 2);
-        float labelCxPadding = mVerticalAxisLabelPaint.measureText(String.valueOf(mMaxVerticalAxisValue));
+        float labelCxPadding = getVerticalAxisLabelPadding();
 
         /* Required space for the label including offset */
         float labelSpace = (labelTextSize);
@@ -423,8 +422,8 @@ public abstract class Graph extends View {
             labelExtraPad = (((cyEnd - cyStart) % labelSpace) / labelMaxCount);
         }
 
-        long labelsXOffset = 20;
-        long labelsYOffset = -10;
+        long labelsXOffset = (long) getDpValue(10F);
+        long labelsYOffset = (long) getDpValue(-5F);
         for (int i = 0; i <= (labelMaxCount); i++) {
             /* Calculate y-axis value to draw */
             float valueToDraw = (lineCy - 0) * (mMinVerticalAxisValue - mMaxVerticalAxisValue) / (cyEnd - cyStart) + mMaxVerticalAxisValue;
@@ -432,13 +431,13 @@ public abstract class Graph extends View {
 
             /* If the label to draw is first one, then apply also unit label */
             if (i == 0 && mUnitLabel != null && mDrawVerticalAxisLabelLines) {
-                float labelPadding = mVerticalAxisLabelPaint.measureText(mUnitLabel);
+                float labelPadding = mVerticalAxisLabelPaint.measureText(mUnitLabel)+getDpValue(17F);
                 if (mUnitLabel.startsWith(" ")) {
                     label += mUnitLabel;
                 } else {
                     label += " "+mUnitLabel;
                 }
-                canvas.drawLine(labelPadding + labelCxPadding + cxStart, lineCyStart + lineCy, cxEnd, lineCyStart + lineCy, mGraphFramePaint);
+                canvas.drawLine(labelPadding + cxStart+labelsXOffset, lineCyStart + lineCy, cxEnd, lineCyStart + lineCy, mGraphFramePaint);
             } else if (mDrawVerticalAxisLabelLines && i != labelMaxCount) {
                 /* Skip last line */
                 canvas.drawLine(labelCxPadding + cxStart, lineCyStart + lineCy, cxEnd, lineCyStart + lineCy, mGraphFramePaint);
