@@ -32,6 +32,7 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.text.TextPaint;
@@ -40,6 +41,10 @@ import android.view.View;
 
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public abstract class Graph extends View {
@@ -52,9 +57,12 @@ public abstract class Graph extends View {
     private float mScale;
 
     private Paint mGraphFramePaint = new Paint();
+    private Paint mBackgroundPaint = new Paint();
 
     private TextPaint mVerticalAxisLabelPaint = new TextPaint();
     private TextPaint mHorizontalAxisLabelPaint = new TextPaint();
+    private TextPaint mTitlePaint = new TextPaint();
+    private TextPaint mSubtitlePaint = new TextPaint();
 
     private boolean mDrawHorizontalAxisLabels = true;
     private boolean mDrawVerticalAxisLabels = true;
@@ -67,6 +75,14 @@ public abstract class Graph extends View {
 
     private float mMaxVerticalAxisValue;
     private float mMinVerticalAxisValue;
+
+    private ArrayList<Long> mDateAxisTicks = null;
+    private String mTitle = "";
+    private String mSubtitle = "";
+    private String mLegendSubtitle = "";
+    private String mLegendSubsubtitle = "";
+    private String mDataCopyright = "";
+
 
     private long mDateStart;
     private long mDateEnd;
@@ -96,8 +112,8 @@ public abstract class Graph extends View {
 
     public void init(Context context, AttributeSet attrs){
         int graphFrameColor = Color.parseColor("#e0e0e0");
-        int verticalAxisLabelColor = Color.parseColor("#9e9e9e");
-        int horizontalAxisLabelsColor = Color.parseColor("#9e9e9e");
+        int verticalAxisLabelColor = Color.rgb (239, 239, 239);
+        int horizontalAxisLabelsColor = Color.rgb (239, 239, 239);
 
         int verticalAxisLabelSize = (int) getDpValue(TEXT_LABEL_SIZE);
         int horizontalAxisLabelSize = (int) getDpValue(TEXT_LABEL_SIZE);
@@ -139,10 +155,23 @@ public abstract class Graph extends View {
         mGraphFramePaint.setColor(graphFrameColor);
         mGraphFramePaint.setStrokeWidth(graphFrameStrokeWidth);
 
+        mBackgroundPaint.setStyle(Paint.Style.FILL);
+        mBackgroundPaint.setColor(Color.argb(125, 51, 51, 51));
+
         /* Text paint for drawing vertical labels */
         mVerticalAxisLabelPaint.setColor(verticalAxisLabelColor);
         mVerticalAxisLabelPaint.setAntiAlias(true);
         mVerticalAxisLabelPaint.setTextSize(verticalAxisLabelSize);
+
+        mTitlePaint.setColor(verticalAxisLabelColor);
+        mTitlePaint.setAntiAlias(true);
+        mTitlePaint.setTextSize(verticalAxisLabelSize*1.5f);
+        mTitlePaint.setFakeBoldText(true);
+
+        mSubtitlePaint.setColor(verticalAxisLabelColor);
+        mSubtitlePaint.setAntiAlias(true);
+        mSubtitlePaint.setTextSize(verticalAxisLabelSize*1.2f);
+        mSubtitlePaint.setFakeBoldText(true);
 
         /* Text paint for drawing horizontal labels */
         mHorizontalAxisLabelPaint.setColor(horizontalAxisLabelsColor);
@@ -164,7 +193,7 @@ public abstract class Graph extends View {
         return mScale * value;
     }
 
-    public float getVerticalAxisLabelPadding() { return mVerticalAxisLabelPaint.measureText(String.valueOf(mMaxVerticalAxisValue)); }
+    public float getVerticalAxisLabelPadding() { return 40F; }
 
     public float getHorizontalAxisLabelPadding() { return mHorizontalAxisLabelPaint.getTextSize() * 1.5f; }
 
@@ -190,6 +219,13 @@ public abstract class Graph extends View {
 
     public boolean getDrawVerticalAxisLines() { return mDrawVerticalAxisLabelLines; }
 
+    public ArrayList<Long> getDateAxisTicks() { return mDateAxisTicks; }
+
+    public String getTitle() { return mTitle; }
+    public String getSubtitle() { return mSubtitle; }
+    public String getLegendSubtitle() { return mLegendSubtitle; }
+    public String getDataCopyright() { return mDataCopyright; }
+    public String getLegendSubsubtitle() { return mLegendSubsubtitle; }
 
     public void setMaxVerticalAxisValue(float max) {
         mMaxVerticalAxisValue = max;
@@ -266,6 +302,28 @@ public abstract class Graph extends View {
         invalidate();
     }
 
+    public void setDateAxisTicks(ArrayList<Long> newList) {
+        mDateAxisTicks = new ArrayList<Long>(newList);
+    }
+
+    public void setTitle(String title) {
+        mTitle = title;
+    }
+
+    public void setSubtitle(String subtitle) {
+        mSubtitle = subtitle;
+    }
+
+    public void setLegendSubtitle(String subtitle) {
+        mLegendSubtitle = subtitle;
+    }
+
+    public void setDataCopyright(String title) {
+        mDataCopyright = title;
+    }
+
+    public void setLegendSubsubtitle(String title) { mLegendSubsubtitle = title; }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
@@ -289,10 +347,12 @@ public abstract class Graph extends View {
 
         float cxStart = leftPadding;
         float cxEnd = mWidth - (getPaddingRight() + graphFrameStrokeWidth);
-
         float graphCxStart = cxStart + getVerticalAxisLabelPadding();
 
         /* Draw the vertical axis labels */
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            canvas.drawRoundRect(0, 0, mWidth, mHeight, 10, 10, mBackgroundPaint);
+        }
         if(mDrawVerticalAxisLabels || mDrawVerticalAxisLabelLines) {
             drawVerticalAxisLabels(canvas, cyStart, cyEnd, cxStart, cxEnd);
         }
@@ -304,6 +364,40 @@ public abstract class Graph extends View {
             /* Draw the horizontal axis labels */
             drawHorizontalAxisLabels(canvas, cyStart, cyEnd, graphCxStart, cxEnd);
         }
+
+
+        Float subtitleX = (cxEnd-mSubtitlePaint.measureText(mSubtitle)-10);
+        canvas.drawText(
+                mSubtitle,
+                subtitleX,
+                57,
+                mSubtitlePaint);
+        float titleMeasuredWidth = mTitlePaint.measureText(mTitle);
+        Float titleX = (cxEnd-cxStart)/2-titleMeasuredWidth/2;
+        Float titleRightEdge = titleX+titleMeasuredWidth;
+        if (titleRightEdge>subtitleX) {
+            titleX = subtitleX-titleMeasuredWidth-7;
+        }
+        canvas.drawText(
+                mTitle,
+                titleX,
+                57,
+                mTitlePaint);
+        canvas.drawText(
+                mLegendSubtitle,
+                subtitleX,
+                cyEnd-60,
+                mSubtitlePaint);
+        canvas.drawText(
+                mLegendSubsubtitle,
+                subtitleX,
+                cyEnd-30,
+                mSubtitlePaint);
+        canvas.drawText(
+                mDataCopyright,
+                cxStart+50,
+                cyEnd-35,
+                mSubtitlePaint);
     }
 
     private void drawVerticalAxisLabels(Canvas canvas, float cyStart, float cyEnd, float cxStart, float cxEnd) {
@@ -329,7 +423,8 @@ public abstract class Graph extends View {
             labelExtraPad = (((cyEnd - cyStart) % labelSpace) / labelMaxCount);
         }
 
-
+        long labelsXOffset = 20;
+        long labelsYOffset = -10;
         for (int i = 0; i <= (labelMaxCount); i++) {
             /* Calculate y-axis value to draw */
             float valueToDraw = (lineCy - 0) * (mMinVerticalAxisValue - mMaxVerticalAxisValue) / (cyEnd - cyStart) + mMaxVerticalAxisValue;
@@ -338,14 +433,18 @@ public abstract class Graph extends View {
             /* If the label to draw is first one, then apply also unit label */
             if (i == 0 && mUnitLabel != null && mDrawVerticalAxisLabelLines) {
                 float labelPadding = mVerticalAxisLabelPaint.measureText(mUnitLabel);
-                label += mUnitLabel;
+                if (mUnitLabel.startsWith(" ")) {
+                    label += mUnitLabel;
+                } else {
+                    label += " "+mUnitLabel;
+                }
                 canvas.drawLine(labelPadding + labelCxPadding + cxStart, lineCyStart + lineCy, cxEnd, lineCyStart + lineCy, mGraphFramePaint);
             } else if (mDrawVerticalAxisLabelLines && i != labelMaxCount) {
                 /* Skip last line */
                 canvas.drawLine(labelCxPadding + cxStart, lineCyStart + lineCy, cxEnd, lineCyStart + lineCy, mGraphFramePaint);
             }
             if (mDrawVerticalAxisLabels) {
-                canvas.drawText(label, cxStart, labelCyStart + lineCy, mVerticalAxisLabelPaint);
+                canvas.drawText(label, cxStart+labelsXOffset, labelCyStart + lineCy+labelsYOffset, mVerticalAxisLabelPaint);
             }
 
             lineCy += (labelSpace + labelExtraPad);
@@ -415,25 +514,42 @@ public abstract class Graph extends View {
             requiredLabelSpace = horizontalSpace / horizontalLabelCount;
             horizontalLabelExtraPad = ((horizontalSpace % requiredLabelSpace) / horizontalLabelCount);
         }
+        String timeLabel;
+        if (mDateAxisTicks == null) {
+            if (horizontalLabelCount > 0) {
 
-        if(horizontalLabelCount > 0 ) {
+                float labelCx = cxStart + (requiredLabelSpace / 2) + horizontalLabelExtraPad;
 
-            float labelCx = cxStart + (requiredLabelSpace/2) +horizontalLabelExtraPad;
-            String timeLabel;
+                for (int i = 0; i < horizontalLabelCount; i++) {
 
-            for (int i = 0; i < horizontalLabelCount; i++) {
+                    if (labelCx < horizontalSpace + cxStart) {
+                        long time = (long) ((labelCx - cxStart) * (mDateEnd - mDateStart) / (cxEnd - cxStart) + mDateStart);
 
-                if(labelCx < horizontalSpace + cxStart) {
-                    long time = (long) ((labelCx - cxStart) * (mDateEnd - mDateStart) / (cxEnd - cxStart) + mDateStart);
+                        timeLabel = new SimpleDateFormat(timeFormat, Locale.getDefault()).format(time);
+                        canvas.drawText(timeLabel, labelCx - (labelWidth / 2), cy, mHorizontalAxisLabelPaint);
+                        canvas.drawLine(labelCx, indicatorLineCyStart, labelCx, indicatorLineCyEnd, mGraphFramePaint);
 
-                    timeLabel = new SimpleDateFormat(timeFormat, Locale.getDefault()).format(time);
+                        labelCx += (requiredLabelSpace + horizontalLabelExtraPad);
+                    }
 
-                    canvas.drawText(timeLabel, labelCx - (labelWidth / 2), cy, mHorizontalAxisLabelPaint);
-                    canvas.drawLine(labelCx, indicatorLineCyStart, labelCx, indicatorLineCyEnd, mGraphFramePaint);
-
-                    labelCx += (requiredLabelSpace + horizontalLabelExtraPad);
                 }
+            }
+        } else {
+            long labelsXOffset = 20;
+            long labelsYOffset = -10;
 
+            for (int i = 0; i < mDateAxisTicks.size(); ++i) {
+                long time = mDateAxisTicks.get(i);
+                float labelCx = ((time - mDateStart) * (cxEnd - cxStart) / (mDateEnd - mDateStart) + cxStart);
+                long timeInSeconds = time/1000L;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("HH:mm");
+                    timeLabel = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0)
+                            .withNano(0).plusSeconds(timeInSeconds)
+                            .format(outputFormatter);
+                    canvas.drawText(timeLabel, labelCx - (labelWidth / 2)+labelsXOffset, cy+labelsYOffset, mHorizontalAxisLabelPaint);
+                    canvas.drawLine(labelCx, indicatorLineCyStart, labelCx, indicatorLineCyEnd, mGraphFramePaint);
+                }
             }
         }
     }

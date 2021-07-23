@@ -44,7 +44,6 @@
         <attr name="maxVerticalAxisValue" format="float" />
         <attr name="minVerticalAxisValue" format="float" />
         <attr name="verticalAxisValueLabel" format="string" />
-
     </declare-styleable>
 
     <declare-styleable name="LineGraph">
